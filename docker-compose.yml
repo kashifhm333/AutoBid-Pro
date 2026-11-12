@@ -1,0 +1,117 @@
+services:
+  # Primary Relational Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: autobid-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-autobid}
+      POSTGRES_USER: ${POSTGRES_USER:-autobid_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-autobid_secret_pass}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-autobid_user} -d ${POSTGRES_DB:-autobid}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - autobid_network
+
+  # In-Memory Cache & Message Broker
+  redis:
+    image: redis:7-alpine
+    container_name: autobid-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - autobid_network
+
+  # Core Backend API & Real-Time WebSocket Gateway
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: autobid-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      API_PREFIX: /api/v1
+      DATABASE_URL: postgresql://${POSTGRES_USER:-autobid_user}:${POSTGRES_PASSWORD:-autobid_secret_pass}@postgres:5432/${POSTGRES_DB:-autobid}?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-default_super_secret_jwt_access_key_min_32_chars_long}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-default_super_secret_jwt_refresh_key_min_32_chars_long}
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      COOKIE_SECRET: ${COOKIE_SECRET:-default_super_secret_cookie_signing_key_32_chars}
+      CORS_ORIGINS: http://localhost:3000,http://localhost:80,http://localhost
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_placeholder_key}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_placeholder_secret}
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - autobid_network
+
+  # Asynchronous Background Worker (BullMQ + Sweeper)
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: autobid-worker
+    restart: unless-stopped
+    command: ["node", "-e", "import('./apps/api/src/workers/auctionWorker.js').then(m => { m.initAuctionWorker(); console.log('Standalone BullMQ Auction Worker Started'); setInterval(() => {}, 1000); })"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-autobid_user}:${POSTGRES_PASSWORD:-autobid_secret_pass}@postgres:5432/${POSTGRES_DB:-autobid}?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-default_super_secret_jwt_access_key_min_32_chars_long}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-default_super_secret_jwt_refresh_key_min_32_chars_long}
+      COOKIE_SECRET: ${COOKIE_SECRET:-default_super_secret_cookie_signing_key_32_chars}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - autobid_network
+
+  # Web Frontend SPA (Nginx)
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: autobid-web
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    networks:
+      - autobid_network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  autobid_network:
+    driver: bridge

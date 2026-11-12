@@ -1,0 +1,1312 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+// ==========================================
+// 1. ENUMS
+// ==========================================
+
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  BANNED
+  DEACTIVATED
+}
+
+enum VehicleStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  INSPECTION
+  APPROVED
+  SCHEDULED
+  LIVE
+  SOLD
+  UNSOLD
+  PAYMENT_PENDING
+  COMPLETED
+  ARCHIVED
+}
+
+enum FuelType {
+  GASOLINE
+  DIESEL
+  HYBRID
+  PLUG_IN_HYBRID
+  ELECTRIC
+  HYDROGEN
+}
+
+enum TransmissionType {
+  AUTOMATIC
+  MANUAL
+  DUAL_CLUTCH
+  CVT
+}
+
+enum DriveType {
+  FWD
+  RWD
+  AWD
+  FOUR_WD
+}
+
+enum BodyType {
+  SEDAN
+  COUPE
+  SUV
+  TRUCK
+  CONVERTIBLE
+  WAGON
+  HATCHBACK
+  VAN
+  SUPERCAR
+}
+
+enum TitleStatus {
+  CLEAN
+  SALVAGE
+  REBUILT
+  LEMON
+  BONDED
+}
+
+enum VehicleCondition {
+  EXCELLENT
+  VERY_GOOD
+  GOOD
+  FAIR
+  POOR
+}
+
+enum AuctionStatus {
+  DRAFT
+  PENDING_APPROVAL
+  SCHEDULED
+  LIVE
+  EXTENDED
+  ENDED
+  SOLD
+  UNSOLD
+  CANCELLED
+}
+
+enum BidStatus {
+  ACTIVE
+  OUTBID
+  WINNING
+  WON
+  CANCELLED
+  REJECTED
+}
+
+enum InspectionStatus {
+  ASSIGNED
+  IN_PROGRESS
+  SUBMITTED
+  REVIEWED
+  APPROVED
+  REJECTED
+}
+
+enum DamageSeverity {
+  MINOR
+  MODERATE
+  SEVERE
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  CANCELLED
+}
+
+enum PaymentType {
+  DEPOSIT
+  BUYER_PREMIUM
+  WINNING_BID
+  SELLER_FEE
+  SHIPPING
+  DOCUMENTATION_FEE
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  PROCESSED
+  REJECTED
+}
+
+enum NotificationType {
+  BID_PLACED
+  OUTBID
+  AUCTION_ENDING_SOON
+  AUCTION_WON
+  AUCTION_LOST
+  AUCTION_EXTENDED
+  PAYMENT_DUE
+  PAYMENT_RECEIVED
+  VEHICLE_APPROVED
+  VEHICLE_REJECTED
+  NEW_MESSAGE
+  SYSTEM_ALERT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_ON_USER
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum AuditAction {
+  USER_REGISTER
+  USER_LOGIN
+  USER_LOGOUT
+  USER_SUSPEND
+  USER_ROLE_CHANGE
+  PASSWORD_CHANGE
+  VEHICLE_CREATE
+  VEHICLE_SUBMIT
+  VEHICLE_APPROVE
+  VEHICLE_REJECT
+  AUCTION_CREATE
+  AUCTION_START
+  AUCTION_PAUSE
+  AUCTION_EXTEND
+  AUCTION_END
+  BID_PLACED
+  PROXY_BID_CREATED
+  PAYMENT_PROCESSED
+  REFUND_PROCESSED
+  SYSTEM_SETTING_UPDATE
+}
+
+// ==========================================
+// 2. IDENTITY & ACCESS MANAGEMENT (IAM)
+// ==========================================
+
+model User {
+  id                  String               @id @default(uuid()) @db.Uuid
+  email               String               @unique @db.VarChar(255)
+  passwordHash        String               @db.VarChar(255)
+  firstName           String               @db.VarChar(100)
+  lastName            String               @db.VarChar(100)
+  status              UserStatus           @default(PENDING_VERIFICATION)
+  emailVerified       Boolean              @default(false)
+  emailVerifiedAt     DateTime?            @db.Timestamptz(6)
+  failedLoginAttempts Int                  @default(0)
+  lockedUntil         DateTime?            @db.Timestamptz(6)
+  lastLoginAt         DateTime?            @db.Timestamptz(6)
+  createdAt           DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime             @updatedAt @db.Timestamptz(6)
+  deletedAt           DateTime?            @db.Timestamptz(6)
+
+  // Relations
+  profile             UserProfile?
+  userRoles           UserRole[]
+  userPermissions     UserPermission[]
+  sessions            Session[]
+  refreshTokens       RefreshToken[]
+  loginAttempts       LoginAttempt[]
+  mfaConfig           MFAConfiguration?
+  verificationTokens  VerificationToken[]
+  passwordResetTokens PasswordResetToken[]
+  vehicles            Vehicle[]            @relation("UserVehicles")
+  bids                Bid[]
+  proxyBids           ProxyBid[]
+  auctionParticipants AuctionParticipant[]
+  wonAuctions         AuctionWinner[]
+  favorites           Favorite[]
+  watchlists          Watchlist[]
+  savedSearches       SavedSearch[]
+  searchHistories     SearchHistory[]
+  sellerProfile       SellerProfile?
+  dealerProfile       DealerProfile?
+  payments            Payment[]
+  notifications       Notification[]
+  sentMessages        Message[]            @relation("SentMessages")
+  conversations       ConversationParticipant[]
+  reviewsGiven        Review[]             @relation("BuyerReviews")
+  reviewsReceived     Review[]             @relation("SellerReviews")
+  auditLogs           AuditLog[]
+  adminActions        AdminAction[]
+  assignedInspections VehicleInspection[]  @relation("AssignedInspector")
+  supportTickets      SupportTicket[]      @relation("UserTickets")
+  assignedTickets     SupportTicket[]      @relation("AssignedAgent")
+  ticketMessages      TicketMessage[]
+  reportsFiled        Report[]             @relation("ReporterUser")
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Role {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String           @unique @db.VarChar(50)
+  description String?          @db.VarChar(255)
+  isSystem    Boolean          @default(true)
+  createdAt   DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime         @updatedAt @db.Timestamptz(6)
+
+  userRoles   UserRole[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id              String           @id @default(uuid()) @db.Uuid
+  code            String           @unique @db.VarChar(100)
+  description     String?          @db.VarChar(255)
+  category        String           @db.VarChar(50)
+  createdAt       DateTime         @default(now()) @db.Timestamptz(6)
+
+  rolePermissions RolePermission[]
+  userPermissions UserPermission[]
+
+  @@index([category])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String     @db.Uuid
+  permissionId String     @db.Uuid
+  assignedAt   DateTime   @default(now()) @db.Timestamptz(6)
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId     String   @db.Uuid
+  roleId     String   @db.Uuid
+  assignedAt DateTime @default(now()) @db.Timestamptz(6)
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model UserPermission {
+  userId       String     @db.Uuid
+  permissionId String     @db.Uuid
+  granted      Boolean    @default(true)
+  grantedAt    DateTime   @default(now()) @db.Timestamptz(6)
+
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, permissionId])
+  @@map("user_permissions")
+}
+
+model Session {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @db.Uuid
+  tokenHash      String    @unique @db.VarChar(255)
+  ipAddress      String?   @db.VarChar(45)
+  userAgent      String?   @db.Text
+  deviceType     String?   @db.VarChar(50)
+  lastActivityAt DateTime  @default(now()) @db.Timestamptz(6)
+  expiresAt      DateTime  @db.Timestamptz(6)
+  revokedAt      DateTime? @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model RefreshToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  tokenHash   String    @unique @db.VarChar(255)
+  familyId    String    @db.Uuid
+  isRevoked   Boolean   @default(false)
+  replacedBy  String?   @db.Uuid
+  ipAddress   String?   @db.VarChar(45)
+  userAgent   String?   @db.Text
+  expiresAt   DateTime  @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+model LoginAttempt {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @db.Uuid
+  email      String   @db.VarChar(255)
+  successful Boolean
+  ipAddress  String   @db.VarChar(45)
+  userAgent  String?  @db.Text
+  failureReason String? @db.VarChar(100)
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([email, createdAt])
+  @@index([ipAddress, createdAt])
+  @@map("login_attempts")
+}
+
+model MFAConfiguration {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @unique @db.Uuid
+  secretKey  String    @db.VarChar(255)
+  isEnabled  Boolean   @default(false)
+  backupCodes String[]
+  verifiedAt DateTime? @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(6)
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mfa_configurations")
+}
+
+model VerificationToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  tokenHash String   @unique @db.VarChar(255)
+  expiresAt DateTime @db.Timestamptz(6)
+  usedAt    DateTime? @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("verification_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  tokenHash String   @unique @db.VarChar(255)
+  expiresAt DateTime @db.Timestamptz(6)
+  usedAt    DateTime? @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// ==========================================
+// 3. USER PROFILE & PREFERENCES
+// ==========================================
+
+model UserProfile {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @unique @db.Uuid
+  avatarUrl     String?   @db.VarChar(500)
+  bio           String?   @db.Text
+  dateOfBirth   DateTime? @db.Date
+  companyName   String?   @db.VarChar(150)
+  taxId         String?   @db.VarChar(50)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(6)
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addresses     Address[]
+  phoneNumbers  PhoneNumber[]
+  preferences   UserPreference?
+  documents     UserDocument[]
+
+  @@map("user_profiles")
+}
+
+model Address {
+  id           String      @id @default(uuid()) @db.Uuid
+  profileId    String      @db.Uuid
+  addressLine1 String      @db.VarChar(255)
+  addressLine2 String?     @db.VarChar(255)
+  city         String      @db.VarChar(100)
+  state        String      @db.VarChar(100)
+  postalCode   String      @db.VarChar(20)
+  country      String      @db.VarChar(100)
+  isDefault    Boolean     @default(false)
+  type         String      @default("BILLING") @db.VarChar(20) // BILLING, SHIPPING
+  createdAt    DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime    @updatedAt @db.Timestamptz(6)
+
+  profile      UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("addresses")
+}
+
+model PhoneNumber {
+  id          String      @id @default(uuid()) @db.Uuid
+  profileId   String      @db.Uuid
+  countryCode String      @default("+1") @db.VarChar(5)
+  number      String      @db.VarChar(20)
+  isVerified  Boolean     @default(false)
+  isPrimary   Boolean     @default(false)
+  createdAt   DateTime    @default(now()) @db.Timestamptz(6)
+
+  profile     UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("phone_numbers")
+}
+
+model UserPreference {
+  id                  String      @id @default(uuid()) @db.Uuid
+  profileId           String      @unique @db.Uuid
+  theme               String      @default("dark") @db.VarChar(20)
+  currency            String      @default("USD") @db.VarChar(3)
+  timezone            String      @default("UTC") @db.VarChar(50)
+  emailOutbidAlert    Boolean     @default(true)
+  emailAuctionEnding  Boolean     @default(true)
+  emailMarketing      Boolean     @default(false)
+  smsOutbidAlert      Boolean     @default(false)
+  pushNotifications   Boolean     @default(true)
+  updatedAt           DateTime    @updatedAt @db.Timestamptz(6)
+
+  profile             UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model UserDocument {
+  id           String      @id @default(uuid()) @db.Uuid
+  profileId    String      @db.Uuid
+  documentType String      @db.VarChar(50) // DRIVER_LICENSE, PASSPORT, PROOF_OF_ADDRESS
+  fileUrl      String      @db.VarChar(500)
+  fileName     String      @db.VarChar(255)
+  mimeType     String      @db.VarChar(100)
+  fileSizeBytes Int
+  isVerified   Boolean     @default(false)
+  verifiedAt   DateTime?   @db.Timestamptz(6)
+  createdAt    DateTime    @default(now()) @db.Timestamptz(6)
+
+  profile      UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("user_documents")
+}
+
+// ==========================================
+// 4. VEHICLES & SPECIFICATIONS
+// ==========================================
+
+model Vehicle {
+  id                 String              @id @default(uuid()) @db.Uuid
+  sellerId           String              @db.Uuid
+  vin                String              @unique @db.VarChar(17)
+  make               String              @db.VarChar(50)
+  model              String              @db.VarChar(50)
+  year               Int
+  trim               String?             @db.VarChar(50)
+  mileage            Int
+  fuelType           FuelType
+  transmission       TransmissionType
+  engine             String?             @db.VarChar(100)
+  driveType          DriveType
+  exteriorColor      String              @db.VarChar(50)
+  interiorColor      String              @db.VarChar(50)
+  bodyType           BodyType
+  doors              Int                 @default(4)
+  seats              Int                 @default(5)
+  city               String              @db.VarChar(100)
+  state              String              @db.VarChar(100)
+  country            String              @default("USA") @db.VarChar(100)
+  postalCode         String              @db.VarChar(20)
+  titleStatus        TitleStatus         @default(CLEAN)
+  condition          VehicleCondition    @default(EXCELLENT)
+  hasAccidentHistory Boolean             @default(false)
+  serviceHistory     String?             @db.Text
+  ownershipCount     Int                 @default(1)
+  description        String?             @db.Text
+  highlights         String[]
+  equipmentNotes     String?             @db.Text
+  knownFlaws         String?             @db.Text
+  status             VehicleStatus       @default(DRAFT)
+  createdAt          DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime            @updatedAt @db.Timestamptz(6)
+  deletedAt          DateTime?           @db.Timestamptz(6)
+
+  seller             User                @relation("UserVehicles", fields: [sellerId], references: [id], onDelete: Restrict)
+  auction            Auction?
+  images             VehicleImage[]
+  videos             VehicleVideo[]
+  documents          VehicleDocument[]
+  inspections        VehicleInspection[]
+  specifications     VehicleSpecification?
+  features           VehicleFeature[]
+  historyRecords     VehicleHistory[]
+  favorites          Favorite[]
+  watchlists         Watchlist[]
+
+  @@index([vin])
+  @@index([make, model, year])
+  @@index([status])
+  @@index([bodyType])
+  @@index([fuelType])
+  @@index([sellerId])
+  @@index([createdAt])
+  @@map("vehicles")
+}
+
+model VehicleImage {
+  id           String   @id @default(uuid()) @db.Uuid
+  vehicleId    String   @db.Uuid
+  url          String   @db.VarChar(500)
+  thumbnailUrl String?  @db.VarChar(500)
+  category     String   @default("EXTERIOR") @db.VarChar(30) // EXTERIOR, INTERIOR, ENGINE, UNDERCARRIAGE, WHEEL, DOCUMENT
+  displayOrder Int      @default(0)
+  isFeatured   Boolean  @default(false)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+
+  vehicle      Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, displayOrder])
+  @@map("vehicle_images")
+}
+
+model VehicleVideo {
+  id           String   @id @default(uuid()) @db.Uuid
+  vehicleId    String   @db.Uuid
+  videoUrl     String   @db.VarChar(500)
+  title        String?  @db.VarChar(100)
+  type         String   @default("WALKAROUND") @db.VarChar(30) // WALKAROUND, COLD_START, DRIVING
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+
+  vehicle      Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@map("vehicle_videos")
+}
+
+model VehicleDocument {
+  id           String   @id @default(uuid()) @db.Uuid
+  vehicleId    String   @db.Uuid
+  title        String   @db.VarChar(150)
+  documentType String   @db.VarChar(50) // TITLE, SERVICE_RECORD, WINDOW_STICKER, CARFAX
+  fileUrl      String   @db.VarChar(500)
+  fileSizeBytes Int
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+
+  vehicle      Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@map("vehicle_documents")
+}
+
+model VehicleSpecification {
+  id                String   @id @default(uuid()) @db.Uuid
+  vehicleId         String   @unique @db.Uuid
+  horsepower        Int?
+  torqueFtLbs       Int?
+  displacementLiters Decimal? @db.Decimal(4, 2)
+  cylinders         Int?
+  curbWeightLbs     Int?
+  fuelTankGallons   Decimal? @db.Decimal(4, 1)
+  epaCityMpg        Int?
+  epaHwyMpg         Int?
+  towingCapacityLbs Int?
+  payloadCapacityLbs Int?
+
+  vehicle           Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@map("vehicle_specifications")
+}
+
+model VehicleFeature {
+  id        String   @id @default(uuid()) @db.Uuid
+  vehicleId String   @db.Uuid
+  category  String   @db.VarChar(50) // SAFETY, COMFORT, AUDIO, PERFORMANCE
+  name      String   @db.VarChar(100)
+
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, category])
+  @@map("vehicle_features")
+}
+
+model VehicleHistory {
+  id          String   @id @default(uuid()) @db.Uuid
+  vehicleId   String   @db.Uuid
+  date        DateTime @db.Date
+  mileage     Int?
+  event       String   @db.VarChar(255)
+  source      String   @db.VarChar(100)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, date])
+  @@map("vehicle_histories")
+}
+
+// ==========================================
+// 5. INSPECTIONS & DAMAGE MAPPING
+// ==========================================
+
+model VehicleInspection {
+  id              String           @id @default(uuid()) @db.Uuid
+  vehicleId       String           @db.Uuid
+  inspectorId     String?          @db.Uuid
+  status          InspectionStatus @default(ASSIGNED)
+  overallScore    Decimal?         @db.Decimal(3, 1) // e.g. 9.2 out of 10
+  odometerVerified Boolean         @default(true)
+  verifiedMileage Int?
+  paintMeterTest  Json?            // Reading array in mils across body panels
+  obd2ScanReport  Json?            // Diagnostic trouble codes (DTCs)
+  summaryNotes    String?          @db.Text
+  checklistData   Json?            // Mechanical, structural, interior, tire tread depths
+  completedAt     DateTime?        @db.Timestamptz(6)
+  createdAt       DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(6)
+
+  vehicle         Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  inspector       User?            @relation("AssignedInspector", fields: [inspectorId], references: [id], onDelete: SetNull)
+  damages         VehicleDamage[]
+
+  @@index([vehicleId])
+  @@index([inspectorId])
+  @@index([status])
+  @@map("vehicle_inspections")
+}
+
+model VehicleDamage {
+  id           String            @id @default(uuid()) @db.Uuid
+  inspectionId String            @db.Uuid
+  location     String            @db.VarChar(100) // FRONT_BUMPER, DRIVER_DOOR, HOOD
+  damageType   String            @db.VarChar(50)  // SCRATCH, DENT, RUST, PAINT_CHIP
+  severity     DamageSeverity    @default(MINOR)
+  xCoord       Decimal?          @db.Decimal(5, 2) // Diagram hotspot percentage X
+  yCoord       Decimal?          @db.Decimal(5, 2) // Diagram hotspot percentage Y
+  photoUrl     String?           @db.VarChar(500)
+  notes        String?           @db.Text
+
+  inspection   VehicleInspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+
+  @@index([inspectionId])
+  @@map("vehicle_damages")
+}
+
+// ==========================================
+// 6. AUCTIONS & SCHEDULING
+// ==========================================
+
+model Auction {
+  id                 String               @id @default(uuid()) @db.Uuid
+  vehicleId          String               @unique @db.Uuid
+  startingPrice      Decimal              @db.Decimal(12, 2)
+  reservePrice       Decimal?             @db.Decimal(12, 2)
+  reserveMet         Boolean              @default(false)
+  currentHighestBid  Decimal              @default(0) @db.Decimal(12, 2)
+  minimumIncrement   Decimal              @default(100) @db.Decimal(10, 2)
+  bidCount           Int                  @default(0)
+  bidderCount        Int                  @default(0)
+  startTime          DateTime             @db.Timestamptz(6)
+  endTime            DateTime             @db.Timestamptz(6)
+  originalEndTime    DateTime             @db.Timestamptz(6)
+  status             AuctionStatus        @default(DRAFT)
+  antiSnipingWindowSec Int                @default(120) // 2 minutes
+  antiSnipingExtSec  Int                  @default(120) // 2 minutes extension
+  maxExtensions      Int                  @default(10)
+  extensionCount     Int                  @default(0)
+  depositRequired    Decimal              @default(500) @db.Decimal(10, 2)
+  currency           String               @default("USD") @db.VarChar(3)
+  createdAt          DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime             @updatedAt @db.Timestamptz(6)
+
+  vehicle            Vehicle              @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  bids               Bid[]
+  proxyBids          ProxyBid[]
+  participants       AuctionParticipant[]
+  winner             AuctionWinner?
+  rules              AuctionRule[]
+  payments           Payment[]
+
+  @@index([status, endTime])
+  @@index([startTime])
+  @@index([currentHighestBid])
+  @@map("auctions")
+}
+
+model AuctionRule {
+  id          String   @id @default(uuid()) @db.Uuid
+  auctionId   String   @db.Uuid
+  ruleKey     String   @db.VarChar(50)
+  ruleValue   String   @db.VarChar(255)
+  description String?  @db.VarChar(255)
+
+  auction     Auction  @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+
+  @@index([auctionId])
+  @@map("auction_rules")
+}
+
+model AuctionParticipant {
+  id              String    @id @default(uuid()) @db.Uuid
+  auctionId       String    @db.Uuid
+  userId          String    @db.Uuid
+  depositPaid     Boolean   @default(false)
+  depositPaymentId String?  @db.Uuid
+  registeredAt    DateTime  @default(now()) @db.Timestamptz(6)
+
+  auction         Auction   @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([auctionId, userId])
+  @@index([auctionId])
+  @@index([userId])
+  @@map("auction_participants")
+}
+
+model AuctionWinner {
+  id              String    @id @default(uuid()) @db.Uuid
+  auctionId       String    @unique @db.Uuid
+  winnerId        String    @db.Uuid
+  winningBidAmount Decimal  @db.Decimal(12, 2)
+  buyerPremium    Decimal   @db.Decimal(10, 2)
+  totalAmountDue  Decimal   @db.Decimal(12, 2)
+  paymentDeadline DateTime  @db.Timestamptz(6)
+  isPaid          Boolean   @default(false)
+  concludedAt     DateTime  @default(now()) @db.Timestamptz(6)
+
+  auction         Auction   @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  winner          User      @relation(fields: [winnerId], references: [id], onDelete: Restrict)
+
+  @@map("auction_winners")
+}
+
+// ==========================================
+// 7. REAL-TIME BIDDING & PROXY BIDS
+// ==========================================
+
+model Bid {
+  id             String    @id @default(uuid()) @db.Uuid
+  auctionId      String    @db.Uuid
+  bidderId       String    @db.Uuid
+  amount         Decimal   @db.Decimal(12, 2)
+  status         BidStatus @default(ACTIVE)
+  isProxyAutoBid Boolean   @default(false)
+  ipAddress      String?   @db.VarChar(45)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+
+  auction        Auction   @relation(fields: [auctionId], references: [id], onDelete: Restrict)
+  bidder         User      @relation(fields: [bidderId], references: [id], onDelete: Restrict)
+
+  @@index([auctionId, amount(sort: Desc)])
+  @@index([auctionId, createdAt])
+  @@index([bidderId])
+  @@map("bids")
+}
+
+model ProxyBid {
+  id         String    @id @default(uuid()) @db.Uuid
+  auctionId  String    @db.Uuid
+  bidderId   String    @db.Uuid
+  maxAmount  Decimal   @db.Decimal(12, 2)
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(6)
+
+  auction    Auction   @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  bidder     User      @relation(fields: [bidderId], references: [id], onDelete: Restrict)
+
+  @@unique([auctionId, bidderId])
+  @@index([auctionId, isActive])
+  @@map("proxy_bids")
+}
+
+model BidIncrement {
+  id         String  @id @default(uuid()) @db.Uuid
+  fromPrice  Decimal @db.Decimal(12, 2)
+  toPrice    Decimal @db.Decimal(12, 2)
+  increment  Decimal @db.Decimal(10, 2)
+
+  @@map("bid_increments")
+}
+
+// ==========================================
+// 8. MARKETPLACE & USER ENGAGEMENT
+// ==========================================
+
+model Favorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  vehicleId String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, vehicleId])
+  @@index([userId])
+  @@index([vehicleId])
+  @@map("favorites")
+}
+
+model Watchlist {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  vehicleId String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, vehicleId])
+  @@index([userId])
+  @@index([vehicleId])
+  @@map("watchlists")
+}
+
+model SavedSearch {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
+  title        String   @db.VarChar(100)
+  filters      Json     // Make, model, year, bodyType, price range
+  emailAlerts  Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("saved_searches")
+}
+
+model SearchHistory {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  queryText  String?  @db.VarChar(255)
+  filters    Json?
+  searchedAt DateTime @default(now()) @db.Timestamptz(6)
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, searchedAt])
+  @@map("search_histories")
+}
+
+// ==========================================
+// 9. SELLERS & DEALERS
+// ==========================================
+
+model SellerProfile {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @unique @db.Uuid
+  totalVehiclesListed Int     @default(0)
+  totalVehiclesSold   Int     @default(0)
+  totalSalesVolume   Decimal  @default(0) @db.Decimal(14, 2)
+  sellerRating       Decimal  @default(5.0) @db.Decimal(3, 2)
+  isVerified         Boolean  @default(false)
+  verifiedAt         DateTime? @db.Timestamptz(6)
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(6)
+
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("seller_profiles")
+}
+
+model DealerProfile {
+  id               String           @id @default(uuid()) @db.Uuid
+  userId           String           @unique @db.Uuid
+  dealershipName   String           @db.VarChar(150)
+  dealerLicenseNum String           @unique @db.VarChar(100)
+  websiteUrl       String?          @db.VarChar(255)
+  inventoryCount   Int              @default(0)
+  isVerified       Boolean          @default(false)
+  verifiedAt       DateTime?        @db.Timestamptz(6)
+  createdAt        DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime         @updatedAt @db.Timestamptz(6)
+
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents        DealerDocument[]
+
+  @@map("dealer_profiles")
+}
+
+model DealerDocument {
+  id           String        @id @default(uuid()) @db.Uuid
+  dealerId     String        @db.Uuid
+  documentType String        @db.VarChar(50) // DEALER_LICENSE, TAX_CERTIFICATE, INSURANCE
+  fileUrl      String        @db.VarChar(500)
+  createdAt    DateTime      @default(now()) @db.Timestamptz(6)
+
+  dealer       DealerProfile @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+
+  @@index([dealerId])
+  @@map("dealer_documents")
+}
+
+// ==========================================
+// 10. PAYMENTS, SETTLEMENT & INVOICING
+// ==========================================
+
+model Payment {
+  id                 String        @id @default(uuid()) @db.Uuid
+  userId             String        @db.Uuid
+  auctionId          String?       @db.Uuid
+  amount             Decimal       @db.Decimal(12, 2)
+  currency           String        @default("USD") @db.VarChar(3)
+  type               PaymentType
+  status             PaymentStatus @default(PENDING)
+  paymentProvider    String        @default("STRIPE") @db.VarChar(50)
+  providerPaymentId  String?       @unique @db.VarChar(255) // Stripe PaymentIntent ID
+  idempotencyKey     String        @unique @db.VarChar(255)
+  errorMessage       String?       @db.Text
+  authorizedAt       DateTime?     @db.Timestamptz(6)
+  capturedAt         DateTime?     @db.Timestamptz(6)
+  createdAt          DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime      @updatedAt @db.Timestamptz(6)
+
+  user               User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  auction            Auction?      @relation(fields: [auctionId], references: [id], onDelete: SetNull)
+  invoice            Invoice?
+  transactions       Transaction[]
+  refunds            Refund[]
+
+  @@index([userId])
+  @@index([auctionId])
+  @@index([status])
+  @@index([idempotencyKey])
+  @@map("payments")
+}
+
+model Transaction {
+  id              String   @id @default(uuid()) @db.Uuid
+  paymentId       String   @db.Uuid
+  gatewayResponse Json?
+  amount          Decimal  @db.Decimal(12, 2)
+  feeAmount       Decimal  @default(0) @db.Decimal(10, 2)
+  netAmount       Decimal  @db.Decimal(12, 2)
+  status          String   @db.VarChar(50)
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+
+  payment         Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@map("transactions")
+}
+
+model Invoice {
+  id          String   @id @default(uuid()) @db.Uuid
+  paymentId   String   @unique @db.Uuid
+  invoiceNum  String   @unique @db.VarChar(50)
+  subtotal    Decimal  @db.Decimal(12, 2)
+  tax         Decimal  @default(0) @db.Decimal(10, 2)
+  total       Decimal  @db.Decimal(12, 2)
+  pdfUrl      String?  @db.VarChar(500)
+  issuedAt    DateTime @default(now()) @db.Timestamptz(6)
+
+  payment     Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}
+
+model Refund {
+  id             String       @id @default(uuid()) @db.Uuid
+  paymentId      String       @db.Uuid
+  amount         Decimal      @db.Decimal(12, 2)
+  reason         String?      @db.VarChar(255)
+  status         RefundStatus @default(PENDING)
+  providerRefundId String?    @db.VarChar(255)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(6)
+  processedAt    DateTime?    @db.Timestamptz(6)
+
+  payment        Payment      @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@index([paymentId])
+  @@map("refunds")
+}
+
+// ==========================================
+// 11. COMMUNICATION & NOTIFICATIONS
+// ==========================================
+
+model Conversation {
+  id           String                    @id @default(uuid()) @db.Uuid
+  title        String?                   @db.VarChar(150)
+  vehicleId    String?                   @db.Uuid
+  createdAt    DateTime                  @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime                  @updatedAt @db.Timestamptz(6)
+
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @db.Uuid
+  userId         String       @db.Uuid
+  lastReadAt     DateTime?    @db.Timestamptz(6)
+  joinedAt       DateTime     @default(now()) @db.Timestamptz(6)
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String              @id @default(uuid()) @db.Uuid
+  conversationId String              @db.Uuid
+  senderId       String              @db.Uuid
+  content        String              @db.Text
+  isSanitized    Boolean             @default(false)
+  flaggedForPII  Boolean             @default(false)
+  createdAt      DateTime            @default(now()) @db.Timestamptz(6)
+
+  conversation   Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User                @relation("SentMessages", fields: [senderId], references: [id], onDelete: Restrict)
+  attachments    MessageAttachment[]
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+model MessageAttachment {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @db.Uuid
+  fileUrl   String   @db.VarChar(500)
+  fileName  String   @db.VarChar(255)
+  mimeType  String   @db.VarChar(100)
+  fileSize  Int
+
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("message_attachments")
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  type      NotificationType
+  title     String           @db.VarChar(200)
+  message   String           @db.Text
+  payload   Json?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?        @db.Timestamptz(6)
+  createdAt DateTime         @default(now()) @db.Timestamptz(6)
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+// ==========================================
+// 12. REVIEWS & RATINGS
+// ==========================================
+
+model Review {
+  id             String          @id @default(uuid()) @db.Uuid
+  buyerId        String          @db.Uuid
+  sellerId       String          @db.Uuid
+  auctionId      String?         @db.Uuid
+  rating         Int             // 1 to 5
+  comment        String?         @db.Text
+  createdAt      DateTime        @default(now()) @db.Timestamptz(6)
+
+  buyer          User            @relation("BuyerReviews", fields: [buyerId], references: [id], onDelete: Restrict)
+  seller         User            @relation("SellerReviews", fields: [sellerId], references: [id], onDelete: Restrict)
+  response       ReviewResponse?
+
+  @@unique([buyerId, sellerId, auctionId])
+  @@index([sellerId])
+  @@map("reviews")
+}
+
+model ReviewResponse {
+  id        String   @id @default(uuid()) @db.Uuid
+  reviewId  String   @unique @db.Uuid
+  response  String   @db.Text
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@map("review_responses")
+}
+
+// ==========================================
+// 13. AUDIT LOGGING & ADMINISTRATION
+// ==========================================
+
+model AuditLog {
+  id          String      @id @default(uuid()) @db.Uuid
+  actorId     String?     @db.Uuid
+  action      AuditAction
+  resource    String      @db.VarChar(50) // VEHICLE, AUCTION, BID, USER
+  resourceId  String?     @db.VarChar(255)
+  payload     Json?
+  stateDiff   Json?       // Before and after state values
+  ipAddress   String?     @db.VarChar(45)
+  userAgent   String?     @db.Text
+  requestId   String?     @db.VarChar(100)
+  createdAt   DateTime    @default(now()) @db.Timestamptz(6)
+
+  actor       User?       @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([action])
+  @@index([resource, resourceId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model AdminAction {
+  id         String   @id @default(uuid()) @db.Uuid
+  adminId    String   @db.Uuid
+  targetType String   @db.VarChar(50) // USER, VEHICLE, AUCTION
+  targetId   String   @db.VarChar(255)
+  actionType String   @db.VarChar(50) // SUSPEND, APPROVE, CANCEL, OVERRIDE
+  reason     String   @db.Text
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  admin      User     @relation(fields: [adminId], references: [id], onDelete: Restrict)
+
+  @@index([adminId])
+  @@index([targetType, targetId])
+  @@map("admin_actions")
+}
+
+model SecurityEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  eventType String   @db.VarChar(50) // BRUTE_FORCE, SUSPICIOUS_IP, PII_LEAK_ATTEMPT
+  severity  String   @default("MEDIUM") @db.VarChar(20)
+  ipAddress String   @db.VarChar(45)
+  metadata  Json?
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([eventType, createdAt])
+  @@map("security_events")
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique @db.VarChar(100)
+  value       String   @db.Text
+  dataType    String   @default("STRING") @db.VarChar(20) // STRING, INT, DECIMAL, BOOLEAN, JSON
+  description String?  @db.VarChar(255)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  @@map("system_settings")
+}
+
+model FeatureFlag {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  isEnabled   Boolean  @default(false)
+  rolloutPct  Int      @default(0) // 0 to 100
+  description String?  @db.VarChar(255)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  @@map("feature_flags")
+}
+
+// ==========================================
+// 14. SUPPORT & DISPUTE RESOLUTION
+// ==========================================
+
+model SupportTicket {
+  id          String         @id @default(uuid()) @db.Uuid
+  userId      String         @db.Uuid
+  assignedTo  String?        @db.Uuid
+  subject     String         @db.VarChar(200)
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(MEDIUM)
+  category    String         @default("GENERAL") @db.VarChar(50)
+  createdAt   DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime       @updatedAt @db.Timestamptz(6)
+
+  user        User           @relation("UserTickets", fields: [userId], references: [id], onDelete: Cascade)
+  assigned    User?          @relation("AssignedAgent", fields: [assignedTo], references: [id], onDelete: SetNull)
+  messages    TicketMessage[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([assignedTo])
+  @@map("support_tickets")
+}
+
+model TicketMessage {
+  id        String        @id @default(uuid()) @db.Uuid
+  ticketId  String        @db.Uuid
+  senderId  String        @db.Uuid
+  message   String        @db.Text
+  createdAt DateTime      @default(now()) @db.Timestamptz(6)
+
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender    User          @relation(fields: [senderId], references: [id], onDelete: Restrict)
+
+  @@index([ticketId, createdAt])
+  @@map("ticket_messages")
+}
+
+model FAQ {
+  id           String   @id @default(uuid()) @db.Uuid
+  question     String   @db.VarChar(255)
+  answer       String   @db.Text
+  category     String   @db.VarChar(50)
+  displayOrder Int      @default(0)
+  isPublished  Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([category, displayOrder])
+  @@map("faqs")
+}
+
+model Report {
+  id         String   @id @default(uuid()) @db.Uuid
+  reporterId String   @db.Uuid
+  targetType String   @db.VarChar(50) // VEHICLE, USER, MESSAGE
+  targetId   String   @db.VarChar(255)
+  reason     String   @db.VarChar(100)
+  details    String?  @db.Text
+  status     String   @default("PENDING") @db.VarChar(20) // PENDING, RESOLVED, DISMISSED
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  reporter   User     @relation("ReporterUser", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([targetType, targetId])
+  @@map("reports")
+}
