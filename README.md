@@ -1,5 +1,6 @@
 # 🏎️ AutoBid Pro — Enterprise Automobile Auction & Bidding Marketplace
 
+[![Production Status](https://img.shields.io/badge/Deployment-Live_on_Vercel-success?logo=vercel&logoColor=white)](https://autobid-pro.vercel.app)
 [![Node.js](https://img.shields.io/badge/Node.js-22_LTS_(ESM)-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Pure JavaScript](https://img.shields.io/badge/Language-Pure_JavaScript-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 [![React](https://img.shields.io/badge/React-18.3_Vite_6-61DAFB?logo=react&logoColor=black)](https://react.dev/)
@@ -8,6 +9,7 @@
 [![Socket.IO](https://img.shields.io/badge/Real--Time-Socket.IO_4.8-010101?logo=socket.io&logoColor=white)](https://socket.io/)
 [![Docker](https://img.shields.io/badge/Containers-Docker_Compose-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![Security](https://img.shields.io/badge/Security-OWASP_ASVS_Level_2-brightgreen?logo=owasp&logoColor=white)](docs/security/asvs_security_audit.md)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **AutoBid Pro** is a production-grade, full-stack online car auction and real-time bidding platform engineered for high-value classic, collector, exotic, and luxury automobiles.
 
@@ -15,20 +17,93 @@ Authored strictly in **Pure Modern JavaScript (ECMAScript 2024+ / Node.js 22 LTS
 
 ---
 
+### 🌐 Live Production Links
+
+| Resource | URL | Status |
+| :--- | :--- | :--- |
+| **Production Web Platform** | [https://autobid-pro.vercel.app](https://autobid-pro.vercel.app) | **Live & Operational** |
+| **API Gateway Probe** | [https://autobid-pro.vercel.app/api](https://autobid-pro.vercel.app/api) | **HTTP 200 OK** |
+| **Health Check Endpoint** | [https://autobid-pro.vercel.app/health](https://autobid-pro.vercel.app/health) | **HTTP 200 OK** |
+| **GitHub Repository** | [https://github.com/kashifhm333/AutoBid-Pro](https://github.com/kashifhm333/AutoBid-Pro) | **Main Branch Synced** |
+
+---
+
 ## 📑 Table of Contents
 
+- [Platform Visual Showcase](#-platform-visual-showcase)
 - [The Problems It Solves](#-the-problems-it-solves)
 - [Key Features](#-key-features)
 - [System Architecture](#-system-architecture)
+- [UML & Domain Diagrams](#-uml--domain-diagrams)
 - [Monorepo Directory Structure](#-monorepo-directory-structure)
 - [Prerequisites](#-prerequisites)
-- [How to Run](#-how-to-run)
+- [How to Run Locally](#-how-to-run-locally)
   - [Option 1: One-Command Docker Compose (Recommended)](#option-1-one-command-docker-compose-recommended)
   - [Option 2: Local Development Setup](#option-2-local-development-setup)
+- [Deployment on Vercel](#-deployment-on-vercel)
 - [Pre-Configured Demo Accounts](#-pre-configured-demo-accounts)
 - [Testing & Quality Assurance](#-testing--quality-assurance)
 - [Core API Routes](#-core-api-routes)
 - [Security & Compliance](#-security--compliance)
+- [License](#-license)
+
+---
+
+## 📸 Platform Visual Showcase
+
+Here is a comprehensive walkthrough of the 9 production views engineered for AutoBid Pro:
+
+### 1. Home Page & Featured Live Auction
+The platform entry experience highlights active featured supercars with synchronized live countdowns, verified condition pills, and immediate bidding entry.
+![Home Page](docs/screenshot/01-home.png)
+
+---
+
+### 2. Curated Vehicle Inventory & Multi-Filter Catalog
+Browse live inventory with faceted search across make, model, year, transmission, price brackets, and live auction status tags.
+![Catalog Page](docs/screenshot/02-catalog.png)
+
+---
+
+### 3. Auction Details, Lightbox Gallery & 150-Point Digital Inspection
+Full auction command rail featuring an unclipped bidding HUD, authoritative real-time bid feed, proxy bidding mode, full-screen lightbox photo modal, and a comprehensive 150-point diagnostic inspection modal with 8-panel paint meter depth readings.
+![Auction Details Page](docs/screenshot/03-auction-details.png)
+
+---
+
+### 4. Buyer Dashboard & Escrow Desk
+Collector dashboard featuring tabbed views for **Active Bids** (Winning vs Outbid tags with direct quick bump action), **Watchlist**, and **Won Auctions & Escrow Settlements** with $500 pre-auth deposit card management.
+![Buyer Dashboard](docs/screenshot/04-buyer-dashboard.png)
+
+---
+
+### 5. Seller Consignment Hub & Listing Wizard
+Consignor portal enabling sellers to manage live lots, adjust reserve thresholds, answer buyer inquiries in real time, and launch a 4-step listing creation wizard with mock VIN auto-decoding.
+![Seller Dashboard](docs/screenshot/05-seller-dashboard.png)
+
+---
+
+### 6. Admin Governance & Platform Command Center
+Authoritative governance console featuring a vehicle curation queue with dossier inspection, real-time auction pause/resume controls, and manual soft-close anti-sniping extension interventions.
+![Admin Dashboard](docs/screenshot/06-admin-dashboard.png)
+
+---
+
+### 7. Split-Screen Authentication & 1-Click Persona Switcher
+50/50 responsive login split screen displaying platform transaction volume metrics, verified collector quotes, social auth triggers, and 1-click instant demo persona switching for immediate testing.
+![Login Page](docs/screenshot/07-login.png)
+
+---
+
+### 8. Collector & Bidder Registration
+Seamless onboarding screen allowing new users to select their primary platform role (Collector/Bidder vs Seller/Dealer) and review escrow terms.
+![Register Page](docs/screenshot/08-register.png)
+
+---
+
+### 9. How It Works & Anti-Sniping Dynamic Soft-Close Walkthrough
+Interactive 4-stage educational guide detailing the digital inspection audit, zero-latency bidding engine, anti-sniping dynamic extension (+120s), and white-glove transport logistics.
+![How It Works](docs/screenshot/09-how-it-works.png)
 
 ---
 
@@ -53,7 +128,7 @@ Commercial automotive auction platforms face acute technical and operational hur
    - *Solution*: **PCI-DSS SAQ-A Compliance**. Zero raw cardholder numbers or CVVs touch application servers. All payments utilize client-side tokenization, and webhooks are cryptographically validated via HMAC SHA-256 signatures with database deduplication.
 6. **Condition Ambiguity & Fraudulent Listings**:
    - *Problem*: Unreported bodywork damage and undocumented mechanical faults.
-   - *Solution*: **Interactive 2D Damage Coordinate Hotspots** (`xCoord`, `yCoord`, severity, and photos) mapped onto vehicle silhouettes, paired with a mandatory 11-step vehicle lifecycle finite state machine.
+   - *Solution*: **150-Point Digital Inspection Scorecards** with 8-panel paint meter readings and OBD-II diagnostics, backed by an 11-step vehicle lifecycle finite state machine.
 
 ---
 
@@ -64,10 +139,10 @@ Commercial automotive auction platforms face acute technical and operational hur
 - ⏱️ **Anti-Sniping Soft Closes**: Configurable extension windows (+120s) with real-time UI synchronized updates.
 - 🛡️ **11 Platform User Roles (Granular RBAC)**: Dual-guard authorization (`requireRole`, `requirePermission`) spanning Super Admin, Admin, Auction Manager, Inspector, Dealer, Seller, Buyer, Escrow Agent, Transport Partner, Detailer, and Support Agent.
 - 🔍 **Vehicle Curation & Lifecycle FSM**: 11 validated status transitions (`DRAFT` $\rightarrow$ `SUBMITTED` $\rightarrow$ `UNDER_REVIEW` $\rightarrow$ `APPROVED` $\rightarrow$ `SCHEDULED` $\rightarrow$ `LIVE` $\rightarrow$ `EXTENDED` $\rightarrow$ `ENDED` $\rightarrow$ `SOLD` $\rightarrow$ `COMPLETED` $\rightarrow$ `CANCELLED`).
-- 📍 **2D Damage Hotspot Inspection Mapping**: Coordinate-based inspection reports mapping exterior chips, scratches, and mechanical ratings.
+- 📍 **150-Point Inspection & Paint Depth Telemetry**: Certified scorecard ratings, OBD-II diagnostic scans, and micrometer readings across all panels.
 - 💳 **PCI-DSS SAQ-A Financials**: Tiered 5% buyer's premium calculation bounded by a **$500 floor** and **$5,000 cap**, generating immutable `INV-YYYYMMDD-XXXX` invoices.
 - 📜 **Immutable Governance Audit Trails**: Atomic recording of `AdminAction` and `AuditLog` records storing JSON state diffs (`previousStatus`, `newStatus`, `reason`).
-- 🎨 **Dark Luxury Automotive UI**: Bespoke Obsidian (`#080B11`), Electric Amber (`#F59E0B`), and Racing Emerald (`#10B981`) aesthetic designed for high data density.
+- 🎨 **Dark Luxury Automotive UI**: Bespoke Obsidian (`#080B11`), Electric Amber (`#F59E0B`), and Racing Emerald (`#10B981`) glassmorphic aesthetic.
 - 📦 **Multi-Stage Containerization**: Minimal Alpine images running unprivileged `node` users with `dumb-init` PID 1 signal supervisors.
 
 ---
@@ -103,10 +178,24 @@ Commercial automotive auction platforms face acute technical and operational hur
 
 ---
 
+## 📐 UML & Domain Diagrams
+
+Comprehensive architectural diagrams and security verification matrices are available in the [`docs/digrams/`](docs/digrams/) directory:
+
+- 🧱 **[Class Diagram & OO Domain Model](docs/digrams/class_diagram.md)**: Full Object-Oriented domain hierarchy (User, Vehicle, Auction, Bid, Inspection, Payment, Escrow).
+- 🔄 **[UML Sequence Diagrams](docs/digrams/uml_sequence_diagrams.md)**: Real-time concurrency-locked bidding, vehicle intake/curation pipeline, and escrow settlement flow.
+- 🚥 **[UML State Machine Diagrams](docs/digrams/uml_state_machine_diagrams.md)**: Vehicle lifecycle FSM, auction state transitions, and bid placement validation logic.
+- 🏛️ **[UML Component Topology Diagram](docs/digrams/uml_component_diagram.md)**: 7-tier architectural component layout and network boundary mapping.
+- 🛡️ **[Security & Route Audit Matrix](docs/digrams/security_and_routes_audit.md)**: Full 28-route threat model, RBAC matrix, and mitigation documentation.
+
+---
+
 ## 📂 Monorepo Directory Structure
 
 ```text
 Online Bid/
+├── api/
+│   └── index.js                           # Vercel Serverless Function adapter for Express
 ├── apps/
 │   ├── api/                               # Backend Express Application (Node.js 22 ESM)
 │   │   ├── Dockerfile                     # Multi-stage production container with dumb-init
@@ -122,7 +211,7 @@ Online Bid/
 │   │   │   │   ├── auctions/              # AuctionService, AuctionController, Routes
 │   │   │   │   ├── auth/                  # AuthService, TokenService, AuthController
 │   │   │   │   ├── bidding/               # BiddingService (Row-Locks), ProxyBidding
-│   │   │   │   ├── inspections/           # InspectionService (2D Damage Hotspots)
+│   │   │   │   ├── inspections/           # InspectionService (150-Point Scorecards)
 │   │   │   │   ├── payments/              # PaymentService, PaymentAdapter, Invoicing
 │   │   │   │   ├── users/                 # UserService, Profile management
 │   │   │   │   └── vehicles/              # VehicleService, VehicleStateMachine (11 states)
@@ -130,14 +219,7 @@ Online Bid/
 │   │   │   ├── workers/                   # BullMQ Auction Worker & 10s database sweeper
 │   │   │   ├── app.js                     # Express app configuration & route mounting
 │   │   │   └── server.js                  # HTTP & WebSocket initialization & graceful shutdown
-│   │   └── test/                          # Comprehensive Vitest test suite (40 tests)
-│   │       ├── admin.test.js              # Super Admin protection & curation tests
-│   │       ├── concurrency.test.js        # High-concurrency serialized row-locking tests
-│   │       ├── domain.test.js             # FSM transitions & anti-sniping formulas
-│   │       ├── e2e.test.js                # Full marketplace lifecycle integration test
-│   │       ├── foundation.test.js         # Token crypto & validation schemas
-│   │       ├── payments.test.js           # Buyer premium tiers & HMAC webhook checks
-│   │       └── realtime.test.js           # Clock-drift sync & room segregation
+│   │   └── test/                          # Comprehensive Vitest test suite (40 tests passing)
 │   │
 │   └── web/                               # Frontend Single Page Application (React 18)
 │       ├── Dockerfile                     # Multi-stage container (Node build -> Nginx Alpine)
@@ -145,34 +227,27 @@ Online Bid/
 │       ├── index.html                     # HTML5 entry with Google Fonts
 │       └── src/
 │           ├── components/
-│           │   ├── common/                # Button, Badge, Card, PriceDisplay, Header, Footer
-│           │   └── auction/               # AuctionTimer (drift-aware), VehicleCard, BidPanel
+│           │   ├── modals/                # Lightbox, InspectionDetail, ListingCreation, QuickBid
+│           │   └── ui/                    # AuctionTimer, VehicleCard, BidPanel, Badge, Card
 │           ├── context/                   # AuthContext, SocketContext
 │           ├── pages/                     # Home, Catalog, AuctionDetails, Dashboards, Auth
-│           ├── App.jsx                    # Route switch & layout shell
-│           ├── index.css                  # Tailored Dark Luxury Automotive styling
+│           ├── layouts/                   # Navbar, Footer
+│           ├── App.jsx                    # Hash routing & layout shell
 │           └── main.jsx                   # React DOM root mounting
 │
 ├── packages/
 │   ├── config/                            # Shared constants, fee ladders, roles, statuses
-│   │   └── src/index.js
 │   └── validation/                        # Isomorphic Zod runtime schemas
-│       └── src/index.js
 │
-├── docs/                                  # Full Platform Technical Documentation
-│   ├── architecture/
-│   │   └── system_architecture.md         # Comprehensive architecture & C4 diagrams
-│   ├── database/
-│   │   └── database_architecture.md       # 60-model ERD, indexing, table catalog
-│   ├── operations/
-│   │   └── operational_runbook.md         # Deployment, backup/restore (RPO/RTO), incidents
-│   └── security/
-│       └── asvs_security_audit.md         # OWASP ASVS Level 2 verification audit
+├── docs/                                  # Full Platform Documentation
+│   ├── digrams/                           # UML Class, Sequence, State, Component Diagrams
+│   ├── screenshot/                        # High-resolution production Retina screenshots
+│   ├── architecture/                      # Architecture runbooks & C4 specifications
+│   ├── database/                          # Database schema & indexing catalog
+│   └── security/                          # OWASP ASVS Level 2 audit report
 │
-├── .github/
-│   └── workflows/
-│       └── ci.yml                         # Automated CI/CD pipeline (tests, build, Docker)
-├── .env.example                           # Documented environment variables template
+├── .github/workflows/ci.yml               # Automated CI/CD pipeline
+├── vercel.json                            # Vercel deployment configuration
 ├── docker-compose.yml                     # Multi-service container orchestration
 └── package.json                           # Root monorepo workspace configuration
 ```
@@ -181,8 +256,7 @@ Online Bid/
 
 ## 📋 Prerequisites
 
-To run AutoBid Pro, ensure the following are installed on your host system:
-
+To run AutoBid Pro locally:
 - **Node.js**: `v22.0.0` or higher
 - **npm**: `v10.0.0` or higher
 - **Docker & Docker Compose**: (Optional, for containerized execution)
@@ -191,176 +265,105 @@ To run AutoBid Pro, ensure the following are installed on your host system:
 
 ---
 
-## 🚀 How to Run
+## 🚀 How to Run Locally
 
 ### Option 1: One-Command Docker Compose (Recommended)
 
-The easiest way to boot the entire stack (PostgreSQL, Redis, API Backend, BullMQ Worker, and Nginx Web Frontend) is with Docker Compose:
+Launch the full stack (PostgreSQL, Redis, Express API Backend, BullMQ Worker, and Nginx Web Frontend):
 
 ```bash
-# 1. Clone or navigate to the project directory
-cd "/home/kashifhm333/Desktop/Project/Online Bid"
+# 1. Clone repository
+git clone https://github.com/kashifhm333/AutoBid-Pro.git
+cd AutoBid-Pro
 
-# 2. Copy the environment configuration
+# 2. Copy environment configuration
 cp .env.example .env
 
-# 3. Launch all 5 containerized services with health checks
+# 3. Launch all containerized services
 docker compose up --build
 ```
 
-#### Accessing the Containerized Services:
+#### Accessing Containerized Endpoints:
 - 🌐 **Web Frontend (Nginx)**: [http://localhost:3000](http://localhost:3000)
 - 🔌 **API REST Endpoints**: [http://localhost:4000/api/v1](http://localhost:4000/api/v1)
-- 🩺 **Health Check Liveness Probe**: [http://localhost:4000/health/live](http://localhost:4000/health/live)
-- 🩺 **Health Check Readiness Probe**: [http://localhost:4000/health/ready](http://localhost:4000/health/ready)
-
-To shut down the containers:
-```bash
-docker compose down
-```
+- 🩺 **Health Check**: [http://localhost:4000/health](http://localhost:4000/health)
 
 ---
 
 ### Option 2: Local Development Setup
 
-If you prefer to run services natively during active development:
-
-#### 1. Install Monorepo Dependencies
 ```bash
+# 1. Install dependencies
 npm install
-```
 
-#### 2. Configure Environment Variables
-Create your local `.env` in the root directory (or copy from `.env.example`):
-```bash
+# 2. Configure environment
 cp .env.example .env
-```
-Ensure your local PostgreSQL and Redis instances are running and that `DATABASE_URL` and `REDIS_URL` in `.env` reflect your local credentials.
 
-#### 3. Generate the Prisma Client
-```bash
+# 3. Generate Prisma client
 npm run prisma:generate
-```
 
-#### 4. Run Database Migrations
-```bash
+# 4. Run database migrations & seed supercars
 npm run prisma:migrate
-```
-
-#### 5. Seed the Database with Supercars & Platform Data
-Populate all 11 user roles, iconic supercars (Porsche GT3 RS, Ferrari 488 Pista, Mercedes-AMG Black Series, Ford GT, Shelby GT500), 2D damage inspection hotspots, live auctions, and invoices:
-```bash
 npm run seed
-```
 
-#### 6. Start the Backend API Server
-```bash
+# 5. Start Backend API
 npm run dev
-```
-*The API server will listen on `http://localhost:4000` with WebSocket gateway and BullMQ background sweeper active.*
 
-#### 7. Start the Frontend React SPA
-Open a separate terminal window and launch Vite:
-```bash
-npm run dev --workspace=apps/web
+# 6. In a second terminal, start Frontend Vite
+npm run dev --workspace=@autobid/web
 ```
-*The React client will launch at `http://localhost:5173` (or `http://localhost:3000`).*
+*Frontend loads on `http://localhost:5173` with instant mock fallbacks when running offline.*
+
+---
+
+## ☁️ Deployment on Vercel
+
+The platform is configured for zero-configuration unified deployment on **Vercel**:
+
+- **Frontend**: Single-Page Application (React 18, Vite, Tailwind CSS) deployed as static CDN assets with client-side rewrite fallback (`/(.*)` $\rightarrow$ `/index.html`).
+- **Backend API**: The Express application runs seamlessly as an ephemeral **Vercel Serverless Function** via [`api/index.js`](api/index.js), serving `/api/*` and `/health` requests with security headers, request logging, and rate limiting.
+
+Deploy with the Vercel CLI:
+```bash
+npx vercel --prod
+```
 
 ---
 
 ## 👥 Pre-Configured Demo Accounts
 
-The database seeder (`npm run seed`) provisions 11 verified user accounts across all platform roles with the default password: **`Password123!`**
+The database seeder provisions verified user accounts across all platform roles with the default password: **`Password123!`**
 
 | Platform Role | Demo Email | Access Permissions |
 | :--- | :--- | :--- |
 | **Super Administrator** | `superadmin@autobidpro.com` | Complete system ownership, user status control, settings registry |
 | **Administrator** | `admin@autobidpro.com` | Platform moderation, audit log review, vehicle curation |
 | **Auction Manager** | `manager@autobidpro.com` | Auction scheduling, emergency soft-close extension, cancellation |
-| **Certified Inspector** | `inspector@autobidpro.com` | Vehicle condition grading, 2D damage coordinate hotspot entry |
+| **Certified Inspector** | `inspector@autobidpro.com` | Vehicle condition grading, 150-point diagnostic inspection |
 | **Prestige Dealer** | `dealer@concoursmotors.com` | Multi-vehicle lot submissions, inventory management |
-| **Collector Seller** | `seller@collectorcars.com` | Vehicle draft submissions, reserve price setting, seller dashboard |
-| **VIP Buyer (Monaco)** | `buyer1@monacocars.com` | $500 pre-auth deposit hold active, high-value bidding, invoice checkout |
-| **Speedhunters Buyer** | `buyer2@speedhunters.com` | Active competitive bidding, proxy bidding configurations |
+| **Collector Seller** | `seller@collectorcars.com` | Vehicle draft submissions, reserve price setting |
+| **VIP Buyer (Alex)** | `buyer1@monacocars.com` | $500 pre-auth deposit hold active, high-value bidding |
 | **Escrow Agent** | `escrow@autobidescrow.com` | Settlement verification, vehicle title & fund release |
-| **Logistics Partner** | `logistics@supercartransport.com` | Vehicle shipping, carrier dispatch, tracking coordination |
-| **Support Agent** | `support@autobidpro.com` | User ticket resolution, disputes, inquiry handling |
+
+*Note: In the web UI, you can also use the **Persona Switcher** in the top navigation bar to test views instantly without typing credentials.*
 
 ---
 
 ## 🧪 Testing & Quality Assurance
 
-AutoBid Pro maintains a comprehensive test suite covering cryptographic primitives, state transitions, anti-sniping timers, concurrency serialization, and end-to-end integration.
-
-Execute the complete test suite across all monorepo workspaces:
+Run the complete test suite across all monorepo workspaces:
 ```bash
 npm test
 ```
 
-### Test Suite Breakdown:
-- **`apps/api/test/concurrency.test.js`**:
-  - Simulates simultaneous parallel bids arriving at the exact same millisecond.
-  - Proves PostgreSQL row locks (`SELECT ... FOR UPDATE`) serialize execution, reject conflicting duplicate prices, and enforce monotonic increment ladders.
-  - Verifies atomic proxy auto-counter-bids trigger without intermediate race windows.
-- **`apps/api/test/e2e.test.js`**:
-  - Tests the complete marketplace journey: Registration $\rightarrow$ $500 deposit pre-auth hold $\rightarrow$ 11-step vehicle curation $\rightarrow$ live auction launch $\rightarrow$ anti-sniping soft-close trigger (+120s) $\rightarrow$ reserve verification $\rightarrow$ 5% buyer premium calculation $\rightarrow$ immutable invoice generation.
-- **`apps/api/test/payments.test.js`**:
-  - Validates buyer premium fee schedule ($500 floor, $5,000 cap), HMAC SHA-256 Stripe webhook signature verification, and idempotency deduplication.
-- **`apps/api/test/domain.test.js`**:
-  - Enforces the 11-stage vehicle finite state machine matrix and role authorization rules.
-- **`apps/api/test/realtime.test.js`**:
-  - Verifies Socket.IO room isolation and client clock-drift compensation formulas.
-- **`apps/api/test/foundation.test.js`**:
-  - Tests JWT token signing/verification, opaque refresh token rotation, and Zod input schemas.
-- **`apps/api/test/admin.test.js`**:
-  - Tests role guards and verifies the inviolable protection blocking suspension of Super Admin accounts.
-- **`apps/web`**:
-  - Verifies clean production bundling via Vite build (298 kB JS, 28 kB CSS, 0 errors).
-
----
-
-## 🌐 Core API Routes
-
-All endpoints are versioned under `/api/v1` and return uniform standardized JSON contracts:
-
-### Identity & Access (`/api/v1/auth`)
-- `POST /register` — Register a new buyer or seller account.
-- `POST /login` — Authenticate credentials, issue JWT access token, and set rotating refresh cookie.
-- `POST /refresh` — Rotate refresh token family and issue new access token.
-- `POST /logout` — Invalidate active session and revoke token family.
-
-### Vehicle Inventory (`/api/v1/vehicles`)
-- `GET /` — Search and filter vehicles with pagination, make, model, year, and condition.
-- `GET /:id` — Retrieve full vehicle specifications, high-res gallery, and inspection report.
-- `POST /` — Draft a new vehicle listing (`SELLER`, `DEALER`).
-- `PATCH /:id/status` — Advance vehicle through the 11-step state machine.
-
-### Real-Time Auctions (`/api/v1/auctions`)
-- `GET /` — List live, scheduled, and completed auctions.
-- `GET /:id` — Authoritative auction state, current price, countdown deadline, and bid count.
-- `POST /` — Schedule an approved vehicle for auction (`AUCTION_MANAGER`).
-
-### Bidding Engine (`/api/v1/bids`)
-- `POST /` — Submit a bid inside a pessimistic row-lock transaction (`SELECT ... FOR UPDATE`).
-- `POST /proxy` — Set or update a private maximum proxy auto-bid limit.
-- `GET /history/:auctionId` — Retrieve chronological public bidding audit log.
-
-### Payments & Invoicing (`/api/v1/payments`)
-- `POST /deposit/hold` — Establish a $500 pre-authorization deposit hold.
-- `POST /settlement/checkout` — Generate checkout session for winning bidder (hammer price + 5% premium).
-- `POST /webhooks/stripe` — Cryptographically verified HMAC SHA-256 webhook ingestion.
-
-### Administration & Governance (`/api/v1/admin`)
-- `GET /overview` — Platform telemetry, total volume, pending approvals, and active auctions.
-- `GET /users` — Search users, filter by role/status.
-- `PATCH /users/:id/status` — Moderate user (Suspend, Ban, Reactivate) with audit logging.
-- `POST /vehicles/:id/curate` — Review submitted vehicle (`APPROVE`, `REJECT`, `REQUEST_CHANGES`).
-- `POST /auctions/:id/manage` — Emergency auction control (`EXTEND`, `CANCEL`).
-- `GET /audit-logs` — Query immutable administrative state-diff audit logs.
-
-### Observability & System Health (`/health`)
-- `GET /health/live` — Kubernetes / Docker liveness probe (Process operational).
-- `GET /health/ready` — Readiness probe (Verifies active PostgreSQL and Redis connections).
+### Test Suite Summary (**40 / 40 Passing**):
+- **`apps/api/test/concurrency.test.js`**: Proves PostgreSQL row locks (`SELECT ... FOR UPDATE`) serialize high-frequency competing bids and prevent race conditions.
+- **`apps/api/test/e2e.test.js`**: Validates the end-to-end marketplace flow from registration through dynamic anti-sniping soft close and invoice generation.
+- **`apps/api/test/payments.test.js`**: Enforces the 5% buyer's premium schedule ($500 floor, $5,000 cap) and HMAC SHA-256 Stripe webhook authentication.
+- **`apps/api/test/domain.test.js`**: Validates the 11-step vehicle lifecycle finite state machine.
+- **`apps/api/test/realtime.test.js`**: Verifies NTP clock synchronization and Socket.IO room segregation.
+- **`apps/api/test/foundation.test.js`**: Tests cryptographic token rotation and schema validation.
+- **`apps/api/test/admin.test.js`**: Enforces Super Admin immutability guards.
 
 ---
 
@@ -368,27 +371,16 @@ All endpoints are versioned under `/api/v1` and return uniform standardized JSON
 
 AutoBid Pro is engineered against the **OWASP Application Security Verification Standard (ASVS) Version 4.0.3 Level 2**:
 
-- **PCI-DSS SAQ-A**: Zero cardholder data retention on platform servers. All credit card processing is delegated to Stripe Elements; application servers only store tokenized `PaymentIntent` IDs.
-- **Race-Condition Immunity**: Concurrency locks on database rows eliminate double-spending, out-of-order bids, or price corruption.
-- **Refresh Token Family Rotation**: Immediate revocation of all issued tokens if an already-consumed refresh token is re-submitted (replay attack detection).
-- **Super Administrator Immutability**: Embedded code-level guard protecting root accounts from suspension by lower-tier admins.
-- **Immutable Audit Logging**: Administrative interventions write structured before-and-after state diffs to `AdminAction` and `AuditLog` records within database transactions.
-- **Container Hardening**: Minimal Alpine base images, `dumb-init` PID 1 process supervision, and dropping privileges to an unprivileged `node` user.
+- **PCI-DSS SAQ-A**: Zero cardholder data retention on application servers.
+- **Pessimistic Concurrency**: Row-level database locks eliminate double-spending, out-of-order bids, or price corruption.
+- **Refresh Token Rotation**: Automatic revocation of token families upon detection of replay attacks.
+- **Root Admin Guard**: Code-level security preventing suspension of Super Administrator accounts.
+- **Immutable Audit Trails**: State diffs recorded to `AdminAction` and `AuditLog` inside ACID transactions.
 
 *For the complete audit certification and verification matrix, see [docs/security/asvs_security_audit.md](docs/security/asvs_security_audit.md).*
 
 ---
 
-## 📜 Architectural Decisions & Runbooks
-
-- 📖 **Architectural Decision Log (32 Decisions)**: [decision_log.md](decision_log.md)
-- 📐 **System Architecture & Mermaid Diagrams**: [docs/architecture/system_architecture.md](docs/architecture/system_architecture.md)
-- 🗄️ **Database Architecture & ERD**: [docs/database/database_architecture.md](docs/database/database_architecture.md)
-- 🛠️ **Operational Runbook & Disaster Recovery**: [docs/operations/operational_runbook.md](docs/operations/operational_runbook.md)
-- 🛡️ **OWASP ASVS Level 2 Security Audit**: [docs/security/asvs_security_audit.md](docs/security/asvs_security_audit.md)
-
----
-
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is open-source software licensed under the **[MIT License](LICENSE)**.
